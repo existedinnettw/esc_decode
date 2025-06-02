@@ -1,0 +1,38 @@
+[project]
+name = "esc-decode"
+version = "0.1.0"
+description = ""
+authors = [{ name = "insleker", email = "bkinnightskytw@gmail.com" }]
+license = { text = "MPL-2.0" }
+readme = "README.md"
+requires-python = ">=3.12,<4"
+dependencies = ["expression[pydantic] (>=5.6.0,<6.0.0)", "numpy (>=2.2.6,<3.0.0)", "termcolor (>=3.1.0,<4.0.0)"]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.11.12"
+pytest = "^8.3.5"
+
+[tool.ruff] # https://docs.astral.sh/ruff/settings/#top-level
+exclude = ["**/migrations/", "**/manage.py"]
+line-length = 100
+
+[tool.ruff.lint] # https://docs.astral.sh/ruff/settings/#lint
+ignore = [
+    "E402", # module level import not at top of file
+]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "UP", # pyupgrade
+]
+
+[tool.ruff.format] # https://docs.astral.sh/ruff/settings/#format
+docstring-code-line-length = 100
+quote-style = "double"           # 引號風格，雙引號是預設值，這裡只是明示這個設定
