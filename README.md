@@ -1,7 +1,7 @@
 # ESC decode
 
 ```bash
-poetry run python -m esc_decode.esc_decode ./tests/data/decoder--250531-232808.csv
+uv run python -m esc_decode.esc_decode ./tests/data/decoder--250531-232808.csv
 ```
 
 output
@@ -14,4 +14,10 @@ mcu WRITEreg:0x134(AL Status Code (low)), data:0x0000(AL status code:0), when AL
 mcu WRITEreg:0x130(AL Status (low)), data:0x0001(State=Init (0x1), Error Ind =0, Device ID loaded=0, ), when AL event(AL Control Register has been written, At least one SyncManager changed, )
 mcu WRITEreg:0x139(ERR LED Override), data:0x10(ERR LED Override: LED code=0x0 (Off), Override=Enabled ), when AL event(AL Control Register has been written, At least one SyncManager changed, )
 ...
+```
+
+## release
+
+```shell
+uv run python -m nuitka --onefile --standalone --lto=yes --static-libpython=auto --assume-yes-for-downloads esc_decode/esc_decode.py --jobs=8
 ```
