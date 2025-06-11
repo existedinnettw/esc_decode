@@ -26,7 +26,7 @@ def test_packet_raw_create():
     for packet in pipe(file, row_stream, aggregate_stream, packet_transform):
         if packet.is_some():
             print("packet:")
-            print(packet.value)
+            print(packet.ok)
         else:
             print("failed")
 
@@ -38,7 +38,7 @@ def test_packet_create():
     ):
         if packet.is_some():
             print("packet:")
-            print(packet.value)
+            print(packet.ok)
         else:
             print("failed")
 
@@ -49,7 +49,7 @@ def test_desc():
 
 def test_packet_desc():
     file = "tests/data/decoder--250531-232808.csv"
-    for opt_packet_str in pipe(
+    for rst_packet_str in pipe(
         file,
         row_stream,
         aggregate_stream,
@@ -57,7 +57,7 @@ def test_packet_desc():
         make_gen(ESC_raw_packet_to_ESC_packet),
         make_gen(get_packet_desc),
     ):
-        if not opt_packet_str.is_some():
+        if not rst_packet_str.is_some():
             continue
 
-        print(opt_packet_str.value)
+        print(rst_packet_str.ok)

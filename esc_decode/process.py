@@ -5,7 +5,7 @@ from functools import wraps
 from typing import TypedDict, TypeVar
 
 import numpy as np
-from expression import Nothing, Option, Result, Some, effect
+from expression import Error, Ok, Result, effect
 from pydantic import BaseModel
 from termcolor import colored
 
@@ -54,14 +54,14 @@ class ESC_raw_packet(TypedDict):
 # @effect.option[ESC_raw_packet]()
 def packet_transform(
     packet_raws: Iterator[list[RowDict]],
-) -> Generator[Option[ESC_raw_packet]]:
+) -> Generator[Result[ESC_raw_packet, Exception]]:
     """
     https://docs.python.org/3/library/typing.html#annotating-generators-and-coroutines
     """
     for packet_raw in packet_raws:
         miso_bytes = bytes(int(row["MISO"], 16) for row in packet_raw)
         mosi_bytes = bytes(int(row["MOSI"], 16) for row in packet_raw)
-        yield Some(ESC_raw_packet(MISOs=miso_bytes, MOSIs=mosi_bytes))
+        yield Ok(ESC_raw_packet(MISOs=miso_bytes, MOSIs=mosi_bytes))
 
 
 T = TypeVar("T")
@@ -100,24 +100,34 @@ def endian_invert(bytes_in: bytes) -> bytes:
     return bytes_in[::-1]
 
 
+class EmptyException(Exception):
+    def __init__(self):
+        super().__init__()
+
+
 def ESC_raw_packet_to_ESC_packet(
-    opt_raw_packet: Option[ESC_raw_packet],
-) -> Option[ESC_packet]:
+    rst_raw_packet: Result[ESC_raw_packet, Exception],
+    ignore_addrs: set[int] = set(),
+) -> Result[ESC_packet, Exception]:
     """
     Convert an ESC_raw_packet to an ESC_packet.
 
     Section III-Register Descriptions for ESC (EtherCAT Slave Controller), ch6.3
     """
-    if opt_raw_packet.is_none():
-        return Nothing
-    raw_packet = opt_raw_packet.value
+    if rst_raw_packet.is_error():
+        return rst_raw_packet
+    raw_packet = rst_raw_packet.ok
 
     m_act = ESC_action.NOP
     try:
         m_act = ESC_action(raw_packet["MOSIs"][0:2][1] & 0b111)
     except ValueError:
-        return Nothing
+        return Error(ValueError("Invalid ESC action in MOSI data"))
+    except IndexError:
+        return Error(ValueError("Packet too short, may lose data during sampling"))
     m_addr = int.from_bytes(raw_packet["MOSIs"][0:2]) >> 3
+    if m_addr in ignore_addrs:
+        return Error(EmptyException())
 
     m_data = b""
     s_resp_val = b""
@@ -132,9 +142,11 @@ def ESC_raw_packet_to_ESC_packet(
         case ESC_action.WRITE:
             m_data = endian_invert(raw_packet["MOSIs"][2:])
         case _:
-            return Nothing
+            return Error(
+                NotImplementedError(f"Unsupported ESC action: {m_act}")
+            )  # pragma: no cover
 
-    return Some(
+    return Ok(
         ESC_packet(
             m_act=m_act,
             m_addr=m_addr,
@@ -164,19 +176,19 @@ def get_reg_pretty_desc(addr: int, data: bytes) -> str:
     return out_str
 
 
-def get_packet_desc(opt_packet: Option[ESC_packet]) -> Option[str]:
+def get_packet_desc(rst_packet: Result[ESC_packet, Exception]) -> Result[str, Exception]:
     """
     Get a description of the ESC packet.
 
     TODO
     use tree structure with expr override will be bettter but more complex
     """
-    if opt_packet.is_none():
-        return Nothing
+    if rst_packet.is_error():
+        return rst_packet
 
-    packet = opt_packet.value
+    packet = rst_packet.ok
     out_str = "mcu "
-    out_str += f"{packet.m_act.name}"  # action
+    out_str += f"{packet.m_act.name} "  # action
 
     match packet.m_act:
         case ESC_action.READ_WAIT:
@@ -188,4 +200,4 @@ def get_packet_desc(opt_packet: Option[ESC_packet]) -> Option[str]:
 
     out_str += ", when AL event"
     out_str += f"({ESC_desc_map[0x0220](int.from_bytes(packet.al_intp_req_val))})"
-    return Some(out_str)
+    return Ok(out_str)

@@ -1,5 +1,7 @@
 from enum import IntEnum, unique
 
+from termcolor import colored
+
 """
 Section II-Register Descriptions for ESC (EtherCAT Slave Controller), ch2
 """
@@ -114,7 +116,8 @@ def decode_al_event_req(value: int) -> str:
         out_str += "EEPROM command pending, "
     if value & (0b1 << 6):
         out_str += "Has expired, "
-
+    if value & (0b1 << 7):
+        out_str += colored("reserved bit set, ", "red")
     for i in range(8, 24):
         if value & (0b1 << i):
             out_str += f"SyncManager {i - 8} interrupt pending, "

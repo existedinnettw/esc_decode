@@ -1,7 +1,7 @@
 # ESC decode
 
 ```bash
-uv run python -m esc_decode.esc_decode ./tests/data/decoder--250531-232808.csv
+uv run python -m esc_decode.esc_decode ./tests/data/decoder--250531-232808.csv -th 10 -i 0x0 0x220
 ```
 
 output
