@@ -7,6 +7,54 @@ Section II-Register Descriptions for ESC (EtherCAT Slave Controller), ch2
 """
 
 
+def decode_x5_SM_supported(value: int) -> str:
+    """
+    Decodes the SyncManagers supported register (0x0005) value into a human-readable string. ch2.5
+    Args:
+        value (int): The 8-bit register value.
+    Returns:
+        str: Human-readable description of the register value.
+    """
+    assert 0 <= value <= 0xFF, "Value must be a single byte (0-255)"
+    return f"numbers of SMs Supported: {value}"
+
+
+def decode_x6_RAM_size(value: int) -> str:
+    """
+    Decodes the RAM Size register (0x0006) value into a human-readable string. ch2.6
+    Args:
+        value (int): The 16-bit register value.
+    Returns:
+        str: Human-readable description of the register value.
+    """
+    # assert 0 <= value <= 0xFF, "Value must be 1 byte"
+    return f"RAM Size: {value & 0xFF} kB"
+
+
+def decode_x7_port_descriptor(value: int) -> str:
+    """
+    Decodes the Port Descriptor register (0x0007) value into a human-readable string. ch2.7
+    Args:
+        value (int): The 8-bit register value.
+    Returns:
+        str: Human-readable description of the register value.
+    """
+    assert 0 <= value <= 0xFF, "Value must be a single byte (0-255)"
+    out_str = "Port Descriptor: "
+    for i in range(4):
+        out_str += f"Port {i}: "
+        match value & (0b11 << i):
+            case 0b00:
+                out_str += "Not implemented, "
+            case 0b01:
+                out_str += "Not configured, "
+            case 0b10:
+                out_str += "EBUS, "
+            case 0b11:
+                out_str += "xMII, "
+    return out_str
+
+
 def decode_run_led_override(value: int) -> str:
     """
     Decodes the RUN LED Override register (0x0138) value into a human-readable string.
@@ -115,7 +163,7 @@ def decode_al_event_req(value: int) -> str:
     if value & (0b1 << 5):
         out_str += "EEPROM command pending, "
     if value & (0b1 << 6):
-        out_str += "Has expired, "
+        out_str += "watchdog process data has expired, "
     if value & (0b1 << 7):
         out_str += colored("reserved bit set, ", "red")
     for i in range(8, 24):
@@ -212,6 +260,60 @@ def decode_ch2_21(value: int) -> str:
         f"Device ID loaded={value & (0b1 << 5)}, "
     )
 
+
+def decode_x204(value: int) -> str:
+    """
+    ch2.30 PDI AL Event Mask (0x0204:0x0207)
+    """
+    assert 0 <= value <= 0xFFFF, "Value must be a 2 byte"
+
+    out_str = ""
+    if value & (0b1):
+        out_str += "AL Control Register, "
+    if value & (0b1 << 1):
+        out_str += "DC Latch Inputs, "
+    if value & (0b1 << 2):
+        out_str += "DC SYNC0, "
+    if value & (0b1 << 3):
+        out_str += "DC SYNC1, "
+    if value & (0b1 << 4):
+        out_str += "SyncManager changed, "
+    if value & (0b1 << 5):
+        out_str += "EEPROM command pending, "
+    if value & (0b1 << 6):
+        out_str += "watchdog process data has expired, "
+    if value & (0b1 << 7):
+        out_str += colored("reserved bit, ", "red")
+    for i in range(8, 24):
+        if value & (0b1 << i):
+            out_str += f"SyncManager {i - 8} interrupt pending, "
+    if out_str != "":
+        out_str += "AL Event request "
+    else:
+        out_str = "nothing "
+    out_str += "map to PDI IRQ signal"
+    return out_str
+
+
+def decode_x502(value: int) -> str:
+    """
+    ch2.45.1
+    """
+    assert 0 <= value <= 0xFFFFFFFF, "Value must be a 4 byte"
+    configured_station_alias = value & 0xFF
+    return f"configured station alias={configured_station_alias}"
+
+def decode_x910_system_time(value: int) -> str:
+    """
+    Decodes the System Time register (0x0910) value into a human-readable string. ch2.49.2
+    Args:
+        value (int): The 4-byte register value.
+    Returns:
+        str: Human-readable description of the register value.
+    """
+    assert 0 <= value <= 0xFFFFFFFFFFFFFFFF, "Value must be a 8 byte"
+    # 8 byte ver existed
+    return f"system time={value}"
 
 # @unique
 # class Esc_reg(IntEnum):
@@ -338,8 +440,16 @@ REG_ADDR_TO_NAME = {
     0x051A: "MII Management Interface (10)",
     0x051B: "MII Management Interface (11)",
     0x0600: "FMMU",
-    0x0800: "SyncManager",
+    # 0x0800: "SM0 physical address (low)",
+    # 0x0801: "SM0 physical address (high)",
+    # 0x0802: "SM0 length (low)",
+    # 0x0803: "SM0 length (high)",
+    # 0x0804: "SM0 control",
+    # 0x0805: "SM0 status",
+    # 0x0806: "SM0 activate",
+    # 0x0807: "SM0 PDI control",
     0x0900: "Distributed Clocks",
+    0x0910: "System Time",
     0x0E00: "ESC-specific registers",
     0x0F00: "Digital I/O Output Data (0)",
     0x0F01: "Digital I/O Output Data (1)",
@@ -364,6 +474,20 @@ REG_ADDR_TO_NAME = {
     0x0F80: "User RAM (start)",
     0x0FFF: "User RAM (end)",
 }
+for sm in range(16):  # SM0 to SM15
+    base_addr = 0x0800 + sm * 0x08
+    REG_ADDR_TO_NAME.update(
+        {
+            base_addr + 0: f"SM{sm} physical address (low)",
+            base_addr + 1: f"SM{sm} physical address (high)",
+            base_addr + 2: f"SM{sm} length (low)",
+            base_addr + 3: f"SM{sm} length (high)",
+            base_addr + 4: f"SM{sm} control",
+            base_addr + 5: f"SM{sm} status",
+            base_addr + 6: f"SM{sm} activate",
+            base_addr + 7: f"SM{sm} PDI control",
+        }
+    )
 
 # Register name to integer address mapping
 # REG_NAME_TO_ADDR = {v: k for k, v in REG_ADDR_TO_NAME.items()}
@@ -372,13 +496,19 @@ REG_ADDR_TO_NAME = {
 ESC_desc_map = {
     0x0000: decode_ch2_1,
     0x0004: decode_ch2_2,
+    0x0005: decode_x5_SM_supported,
+    0x0006: decode_x6_RAM_size,
+    0x0007: decode_x7_port_descriptor,
     0x0120: decode_ch2_20,
     0x0130: decode_ch2_21,
     0x0134: decode_al_status_code,
     0x0138: decode_run_led_override,
     0x0139: decode_err_led_override,
     0x0140: decode_pdi_control,
+    0x0204: decode_x204,
     0x0220: decode_al_event_req,
     0x0440: decode_watchdog_status,
+    0x0502: decode_x502,
     0x0800: decode_sync_manager_status,
+    0x0910: decode_x910_system_time,
 }

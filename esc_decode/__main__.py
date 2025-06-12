@@ -1,4 +1,5 @@
 import argparse
+import sys
 
 from expression import Result, pipe
 from termcolor import colored
@@ -60,3 +61,4 @@ if __name__ == "__main__":
             continue
 
         print(rst_packet_str.ok)
+    sys.exit(0)

@@ -158,6 +158,10 @@ def ESC_raw_packet_to_ESC_packet(
 
 
 def get_reg_pretty_desc(addr: int, data: bytes) -> str:
+    """
+    TODO
+    support more than 1 addr if packet contains multiple registers
+    """
     out_str = f"reg:{hex(addr)}"
     if addr not in REG_ADDR_TO_NAME:
         out_str += colored("(unknown register)", "red")
