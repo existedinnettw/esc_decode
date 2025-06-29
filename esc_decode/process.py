@@ -59,9 +59,21 @@ def packet_transform(
     https://docs.python.org/3/library/typing.html#annotating-generators-and-coroutines
     """
     for packet_raw in packet_raws:
-        miso_bytes = bytes(int(row["MISO"], 16) for row in packet_raw)
-        mosi_bytes = bytes(int(row["MOSI"], 16) for row in packet_raw)
-        yield Ok(ESC_raw_packet(MISOs=miso_bytes, MOSIs=mosi_bytes))
+        miso_list = []
+        mosi_list = []
+        try:
+            for row in packet_raw:
+                miso_str = row["MISO"]
+                mosi_str = row["MOSI"]
+                if not miso_str or not mosi_str:
+                    raise ValueError(f"Empty MISO or MOSI value at group {packet_raw}\n")
+                miso_list.append(int(miso_str, 16))
+                mosi_list.append(int(mosi_str, 16))
+            miso_bytes = bytes(miso_list)
+            mosi_bytes = bytes(mosi_list)
+            yield Ok(ESC_raw_packet(MISOs=miso_bytes, MOSIs=mosi_bytes))
+        except Exception as e:
+            yield Error(e)
 
 
 T = TypeVar("T")

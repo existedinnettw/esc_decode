@@ -265,7 +265,7 @@ def decode_x204(value: int) -> str:
     """
     ch2.30 PDI AL Event Mask (0x0204:0x0207)
     """
-    assert 0 <= value <= 0xFFFF, "Value must be a 2 byte"
+    assert 0 <= value <= 0xFFFFFFFF, "Value must be a 4 byte"
 
     out_str = ""
     if value & (0b1):

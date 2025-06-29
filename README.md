@@ -19,5 +19,5 @@ mcu WRITEreg:0x139(ERR LED Override), data:0x10(ERR LED Override: LED code=0x0 (
 ## release
 
 ```shell
-uv run python -m nuitka --onefile --standalone --lto=yes --static-libpython=auto --assume-yes-for-downloads esc_decode/esc_decode.py --jobs=8
+uvx nuitka --onefile --standalone --lto=yes --static-libpython=auto --assume-yes-for-downloads esc_decode --jobs=8
 ```
