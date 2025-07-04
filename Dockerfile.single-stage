@@ -1,0 +1,29 @@
+# Alternative single-stage Dockerfile for faster startup
+FROM python:3.12-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install uv (modern Python package manager)
+RUN pip install --no-cache-dir uv
+
+# Copy project files
+COPY pyproject.toml uv.lock README.md ./
+COPY esc_decode/ ./esc_decode/
+
+# Install dependencies using uv (production only)
+RUN uv sync --frozen --no-dev
+
+# Pre-compile Python bytecode for faster startup
+RUN python -m compileall esc_decode/
+
+# Activate virtual environment by setting PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Set Python optimizations for faster startup
+ENV PYTHONOPTIMIZE=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set the entrypoint to use python directly from venv
+ENTRYPOINT ["python", "-m", "esc_decode"]

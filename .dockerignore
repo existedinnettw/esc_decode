@@ -1,0 +1,33 @@
+# Build artifacts
+esc_decode.build/
+esc_decode.dist/
+esc_decode.onefile-build/
+esc_decode.bin
+result.out
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Development files
+.git/
+.pytest_cache/
+.ruff_cache/
+.vscode/
+.idea/
+
+# Test files (optional - remove this line if you want to include tests)
+tests/
+
+# Documentation (excluding README.md since it's needed for build)
+LICENSE.txt
+
+# Development dependencies
+requirements.txt
+
+# Wheel files
+wheelfiles/
