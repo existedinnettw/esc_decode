@@ -4,8 +4,8 @@ from enum import Enum, unique
 from functools import wraps
 from typing import TypedDict, TypeVar
 
-import numpy as np
 from expression import Error, Ok, Result, effect
+from numpy import timedelta64
 from pydantic import BaseModel
 from termcolor import colored
 
@@ -15,7 +15,7 @@ from esc_decode.reg_desc import REG_ADDR_TO_NAME, ESC_desc_map
 class RowDict(TypedDict):
     MISO: str
     MOSI: str
-    time: np.timedelta64
+    time: timedelta64
 
 
 def row_stream(file: str):
@@ -25,7 +25,7 @@ def row_stream(file: str):
             row.pop("Id", None)
             row["MISO"] = row.pop("0:SPI: MISO data")
             row["MOSI"] = row.pop("0:SPI: MOSI data")
-            row["time"] = np.timedelta64(int(float(row.pop("Time[ns]"))), "ns")
+            row["time"] = timedelta64(int(float(row.pop("Time[ns]"))), "ns")
             yield row
 
 
@@ -36,7 +36,7 @@ def aggregate_stream(rows: Iterator[RowDict], threshold=4) -> Iterator[list[RowD
         if not group:
             group.append(row)
             last_time = row["time"]
-        elif row["time"] - last_time <= np.timedelta64(threshold, "us"):
+        elif row["time"] - last_time <= timedelta64(threshold, "us"):
             group.append(row)
         else:
             yield group
@@ -137,7 +137,7 @@ def ESC_raw_packet_to_ESC_packet(
         return Error(ValueError("Invalid ESC action in MOSI data"))
     except IndexError:
         return Error(ValueError("Packet too short, may lose data during sampling"))
-    m_addr = int.from_bytes(raw_packet["MOSIs"][0:2]) >> 3
+    m_addr = int.from_bytes(raw_packet["MOSIs"][0:2], byteorder='big') >> 3
     if m_addr in ignore_addrs:
         return Error(EmptyException())
 
@@ -186,7 +186,7 @@ def get_reg_pretty_desc(addr: int, data: bytes) -> str:
     out_str += f", data:0x{data.hex()}"
     if addr in ESC_desc_map:
         desc_func = ESC_desc_map[addr]
-        out_str += f"({desc_func(int.from_bytes(data))})"
+        out_str += f"({desc_func(int.from_bytes(data, byteorder='big'))})"
     else:
         out_str += colored("(no description)", "red")
     return out_str
@@ -215,5 +215,5 @@ def get_packet_desc(rst_packet: Result[ESC_packet, Exception]) -> Result[str, Ex
             out_str += "(no description)"
 
     out_str += ", when AL event"
-    out_str += f"({ESC_desc_map[0x0220](int.from_bytes(packet.al_intp_req_val))})"
+    out_str += f"({ESC_desc_map[0x0220](int.from_bytes(packet.al_intp_req_val, byteorder='big'))})"
     return Ok(out_str)

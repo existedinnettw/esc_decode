@@ -172,3 +172,4 @@ cython_debug/
 *.out
 
 *.dist
+esc_decode.*/

@@ -1,7 +1,9 @@
 {
     "recommendations": [
         "tamasfe.even-better-toml",
-        "ms-python.python",
-        "charliermarsh.ruff"
+        "charliermarsh.ruff",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ms-python.python"
     ]
 }
