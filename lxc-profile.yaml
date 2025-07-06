@@ -1,0 +1,82 @@
+name: esc-decode-python
+description: LXC profile for ESC decode Python application
+config:
+  # Boot configuration
+  boot.autostart: "false"
+  
+  # Security settings
+  security.nesting: "false"
+  security.privileged: "false"
+  
+  # Resource limits
+  limits.cpu: "2"
+  limits.memory: "1GB"
+  
+  # Environment variables
+  environment.PYTHONUNBUFFERED: "1"
+  environment.PYTHONDONTWRITEBYTECODE: "1"
+  environment.PYTHONOPTIMIZE: "1"
+  
+  # User settings
+  user.user-data: |
+    #cloud-config
+    package_update: true
+    package_upgrade: true
+    packages:
+      - python3
+      - python3-pip
+      - python3-venv
+      - curl
+      - wget
+      - git
+      - build-essential
+    
+    runcmd:
+      # Create app directory
+      - mkdir -p /app
+      - chown root:root /app
+      - chmod 755 /app
+      
+      # Install uv for better Python dependency management
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
+      - ln -sf /root/.local/bin/uv /usr/local/bin/uv
+      
+      # Ensure Python3 is properly linked
+      - update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+      
+      # Create a virtual environment in /app
+      - python3 -m venv /app/venv
+      - chown -R root:root /app/venv
+      
+      # Setup bash profile with virtual environment
+      - echo 'cd /app' >> /root/.bashrc
+      - echo 'source /app/venv/bin/activate' >> /root/.bashrc
+      - echo 'export PYTHONPATH="/app:$PYTHONPATH"' >> /root/.bashrc
+      - echo 'export PATH="/app/venv/bin:$PATH"' >> /root/.bashrc
+      
+      # Install common Python packages
+      - /app/venv/bin/pip install --upgrade pip setuptools wheel
+      
+      # Create a sample requirements.txt if it doesn't exist
+      - echo "# Python dependencies will be installed here" > /app/requirements.txt
+      
+      # Set proper permissions
+      - chmod +x /app/venv/bin/activate
+      
+      # Create a welcome message
+      - echo "echo 'ESC Decode Python Environment Ready!'" >> /root/.bashrc
+      - echo "echo 'Use source /app/venv/bin/activate to activate Python virtual environment'" >> /root/.bashrc
+
+devices:
+  # Root disk
+  root:
+    path: /
+    pool: default
+    type: disk
+    size: 10GB
+    
+  # Network configuration
+  eth0:
+    name: eth0
+    network: lxdbr0
+    type: nic
